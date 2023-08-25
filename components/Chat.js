@@ -1,36 +1,77 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Bubble, GiftedChat } from "react-native-gifted-chat";
 import { StyleSheet, View, Text, ImageBackground } from "react-native";
 
 import bgImage from "../assets/backgroundImage.jpg";
 
 const Chat = ({ route, navigation }) => {
   const { name, theme } = route.params;
+  const [messages, setMessages] = useState([]);
+
+  const onSend = (newMessages) => {
+    setMessages((previousMessages) =>
+      GiftedChat.append(previousMessages, newMessages)
+    );
+  };
+
+  //customizes the chat bubble color
+  const renderBubble = (props) => {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          //User's messages
+          right: {
+            backgroundColor: "#60DEA0",
+          },
+          //User's received messages
+          left: {
+            backgroundColor: "#FFF",
+          },
+        }}
+      />
+    );
+  };
+
+  useEffect(() => {
+    setMessages([
+      //receive a placeholder message
+      {
+        _id: 1,
+        text: "Hello developer",
+        createdAt: new Date(),
+        user: {
+          _id: 2,
+          name: "React Native",
+          avatar: "https://placeimg.com/140/140/any",
+        },
+      },
+      //receive a system message
+      {
+        _id: 2,
+        text: "This is a system message",
+        createdAt: new Date(),
+        system: true,
+      },
+    ]);
+  }, []);
 
   useEffect(() => {
     navigation.setOptions({ title: name });
   }, []);
 
   return (
-    <View
-      style={[
-        styles.container,
-        styles.theme,
-        theme === "theme1"
-          ? styles.theme1
-          : theme === "theme2"
-          ? styles.theme2
-          : theme === "theme3"
-          ? styles.theme3
-          : styles.theme4,
-      ]}
-    >
-      <Text
-        style={
-          theme === "theme1" ? styles.textThemeLight : styles.textThemeDark
-        }
-      >
-        Chat screen
-      </Text>
+    <View style={styles.container}>
+      <GiftedChat
+        messages={messages}
+        renderBubble={renderBubble}
+        onSend={(messages) => onSend(messages)}
+        user={{ _id: 1 }}
+      />
+      {/*keyboard adjustments for androids */}
+      {Platform.OS === "android" ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
     </View>
   );
 };
@@ -38,34 +79,6 @@ const Chat = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  theme: {
-    flex: 1,
-    width: "100%",
-  },
-  theme1: {
-    backgroundColor: "black",
-  },
-  theme2: {
-    backgroundColor: "#72BD7B",
-  },
-  theme3: {
-    backgroundColor: "#E1A66B",
-  },
-  theme4: {
-    backgroundColor: "#EC8FEE",
-  },
-  textThemeLight: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  textThemeDark: {
-    color: "black",
-    fontSize: 20,
-    fontWeight: "bold",
   },
 });
 
