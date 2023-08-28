@@ -1,60 +1,77 @@
 import React, { useEffect, useState } from "react";
 import { Bubble, GiftedChat } from "react-native-gifted-chat";
-import { StyleSheet, View, Text, ImageBackground } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  FlatList,
+  Text,
+  KeyboardAvoidingView,
+} from "react-native";
+import { collection, getDocs, addDoc, onSnapshot } from "firebase/firestore";
 
-import bgImage from "../assets/backgroundImage.jpg";
-
-const Chat = ({ route, navigation }) => {
-  const { name, theme } = route.params;
+const Chat = ({ db, route, navigation }) => {
+  const { name, userID, theme } = route.params;
   const [messages, setMessages] = useState([]);
 
   const onSend = (newMessages) => {
-    setMessages((previousMessages) =>
-      GiftedChat.append(previousMessages, newMessages)
-    );
+    addDoc(collection(db, "messages"), newMessages[0]);
   };
 
   //customizes the chat bubble color
   const renderBubble = (props) => {
-    return (
-      <Bubble
-        {...props}
-        wrapperStyle={{
-          //User's messages
-          right: {
-            backgroundColor: "#60DEA0",
-          },
-          //User's received messages
-          left: {
-            backgroundColor: "#FFF",
-          },
-        }}
-      />
-    );
+    const bubbleStyles = {
+      // User's messages
+      right: {
+        backgroundColor:
+          theme === "theme1"
+            ? "black"
+            : theme === "theme2"
+            ? "#72BD7B"
+            : theme === "theme3"
+            ? "#E1A66B"
+            : theme === "theme4"
+            ? "#EC8FEE"
+            : "#FFA726",
+      },
+      // User's received messages
+      left: {
+        backgroundColor: theme === "theme1" ? "#FFF" : "#FFE082",
+      },
+    };
+
+    return <Bubble {...props} wrapperStyle={bubbleStyles} />;
   };
 
   useEffect(() => {
-    setMessages([
-      //receive a placeholder message
-      {
-        _id: 1,
-        text: "Hello developer",
-        createdAt: new Date(),
-        user: {
-          _id: 2,
-          name: "React Native",
-          avatar: "https://placeimg.com/140/140/any",
-        },
-      },
-      //receive a system message
-      {
-        _id: 2,
-        text: "This is a system message",
-        createdAt: new Date(),
-        system: true,
-      },
-    ]);
-  }, []);
+    const unsubMessages = onSnapshot(
+      collection(db, "messages"),
+      (querySnapshot) => {
+        const newMessages = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            _id: doc.id,
+            text: data.text,
+            createdAt: data.createdAt.toDate(),
+            user: {
+              _id: data.user._id,
+              name: data.user.name,
+              avatar: data.user.avatar,
+            },
+          };
+        });
+
+        // Sort messages by createdAt in descending order
+        newMessages.sort((a, b) => b.createdAt - a.createdAt);
+        setMessages(newMessages);
+      }
+    );
+
+    // Clean up code
+    return () => {
+      if (unsubMessages) unsubMessages();
+    };
+  }, [db]);
 
   useEffect(() => {
     navigation.setOptions({ title: name });
@@ -65,8 +82,8 @@ const Chat = ({ route, navigation }) => {
       <GiftedChat
         messages={messages}
         renderBubble={renderBubble}
-        onSend={(messages) => onSend(messages)}
-        user={{ _id: 1 }}
+        onSend={(newMessages) => onSend(newMessages)}
+        user={{ userID: userID, name: name }}
       />
       {/*keyboard adjustments for androids */}
       {Platform.OS === "android" ? (

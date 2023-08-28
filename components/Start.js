@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -6,16 +6,41 @@ import {
   TouchableOpacity,
   TextInput,
   ImageBackground,
+  Alert,
 } from "react-native";
+
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 import bgImage from "../assets/backgroundImage.jpg";
 
 const Start = ({ navigation }) => {
+  const auth = getAuth();
   const [name, setName] = useState("");
   const [selectedTheme, setSelectedTheme] = useState("theme1");
 
   const handleThemeChange = (theme) => {
-    setSelectedTheme(theme);
+    if (theme !== selectedTheme) {
+      setSelectedTheme(theme);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Theme updated:", selectedTheme);
+  }, [selectedTheme]);
+
+  const signInUser = () => {
+    signInAnonymously(auth)
+      .then((result) => {
+        navigation.navigate("Chat", {
+          userID: result.user.uid,
+          name: name,
+          theme: selectedTheme,
+        });
+        Alert.alert("Signed in successfully!");
+      })
+      .catch((error) => {
+        Alert.alert("Unable to sign in. Please try again");
+      });
   };
 
   return (
@@ -72,15 +97,7 @@ const Start = ({ navigation }) => {
                 }}
               />
             </View>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() =>
-                navigation.navigate("Chat", {
-                  name: name,
-                  theme: selectedTheme,
-                })
-              }
-            >
+            <TouchableOpacity style={styles.button} onPress={signInUser}>
               <Text style={styles.buttonText}>Start Chatting</Text>
             </TouchableOpacity>
           </View>
