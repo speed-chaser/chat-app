@@ -7,6 +7,7 @@ import {
   TextInput,
   ImageBackground,
   Alert,
+  KeyboardAvoidingView,
 } from "react-native";
 
 import { getAuth, signInAnonymously } from "firebase/auth";
@@ -32,7 +33,7 @@ const Start = ({ navigation }) => {
     signInAnonymously(auth)
       .then((result) => {
         navigation.navigate("Chat", {
-          userID: result.user.uid,
+          _id: result.user.uid,
           name: name,
           theme: selectedTheme,
         });
@@ -103,6 +104,9 @@ const Start = ({ navigation }) => {
           </View>
         </View>
       </ImageBackground>
+      {Platform.OS === "android" ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
     </View>
   );
 };

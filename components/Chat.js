@@ -11,7 +11,7 @@ import {
 import { collection, getDocs, addDoc, onSnapshot } from "firebase/firestore";
 
 const Chat = ({ db, route, navigation }) => {
-  const { name, userID, theme } = route.params;
+  const { name, _id, theme } = route.params;
   const [messages, setMessages] = useState([]);
 
   const onSend = (newMessages) => {
@@ -82,8 +82,8 @@ const Chat = ({ db, route, navigation }) => {
       <GiftedChat
         messages={messages}
         renderBubble={renderBubble}
-        onSend={(newMessages) => onSend(newMessages)}
-        user={{ userID: userID, name: name }}
+        onSend={(messages) => onSend(messages)}
+        user={{ _id: _id, name: name }}
       />
       {/*keyboard adjustments for androids */}
       {Platform.OS === "android" ? (
