@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Bubble, GiftedChat } from "react-native-gifted-chat";
+import { Bubble, GiftedChat, InputToolbar } from "react-native-gifted-chat";
 import {
   View,
   StyleSheet,
@@ -7,12 +7,84 @@ import {
   FlatList,
   Text,
   KeyboardAvoidingView,
+  Alert,
+  LogBox,
 } from "react-native";
-import { collection, getDocs, addDoc, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 
-const Chat = ({ db, route, navigation }) => {
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const Chat = ({ db, route, navigation, isConnected }) => {
   const { name, _id, theme } = route.params;
   const [messages, setMessages] = useState([]);
+
+  const loadCachedMessages = async () => {
+    try {
+      const cachedMessages = await AsyncStorage.getItem("messages");
+      console.log("Cached Messages:", cachedMessages);
+      if (cachedMessages) {
+        setMessages(JSON.parse(cachedMessages));
+      }
+    } catch (error) {
+      console.error("Error loading cached messages:", error.message);
+    }
+  };
+
+  const cacheMessages = async (messagesToCache) => {
+    try {
+      await AsyncStorage.setItem("messages", JSON.stringify(messagesToCache));
+      console.log("Messages cached successfully");
+    } catch (error) {
+      console.error("Error caching messages:", error.message);
+    }
+  };
+
+  let unsubMessages;
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: name,
+    });
+
+    if (isConnected === true) {
+      if (unsubMessages) unsubMessages();
+      unsubMessages = null;
+
+      const q = query(collection(db, "messages"), where("uid", "==", _id));
+      unsubMessages = onSnapshot(q, (documentsSnapshot) => {
+        let newMessages = [];
+        documentsSnapshot.forEach((doc) => {
+          const messageData = doc.data();
+          const message = {
+            _id: messageData.messageId,
+            text: messageData.text,
+            createdAt: new Date(),
+            user: {
+              _id: messageData.senderId,
+              name: name,
+            },
+          };
+          newMessages.push(message);
+        });
+        cacheMessages(newMessages);
+        setMessages(newMessages);
+      });
+    } else {
+      loadCachedMessages();
+    }
+
+    return () => {
+      if (unsubMessages) unsubMessages();
+    };
+  }, [isConnected]);
 
   const onSend = (newMessages) => {
     addDoc(collection(db, "messages"), newMessages[0]);
@@ -43,39 +115,10 @@ const Chat = ({ db, route, navigation }) => {
     return <Bubble {...props} wrapperStyle={bubbleStyles} />;
   };
 
-  useEffect(() => {
-    const unsubMessages = onSnapshot(
-      collection(db, "messages"),
-      (querySnapshot) => {
-        const newMessages = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            _id: doc.id,
-            text: data.text,
-            createdAt: data.createdAt.toDate(),
-            user: {
-              _id: data.user._id,
-              name: data.user.name,
-              avatar: data.user.avatar,
-            },
-          };
-        });
-
-        // Sort messages by createdAt in descending order
-        newMessages.sort((a, b) => b.createdAt - a.createdAt);
-        setMessages(newMessages);
-      }
-    );
-
-    // Clean up code
-    return () => {
-      if (unsubMessages) unsubMessages();
-    };
-  }, [db]);
-
-  useEffect(() => {
-    navigation.setOptions({ title: name });
-  }, []);
+  const renderInputToolbar = (props) => {
+    if (isConnected) return <InputToolbar {...props} />;
+    else return null;
+  };
 
   return (
     <View style={styles.container}>
@@ -84,6 +127,7 @@ const Chat = ({ db, route, navigation }) => {
         renderBubble={renderBubble}
         onSend={(messages) => onSend(messages)}
         user={{ _id: _id, name: name }}
+        renderInputToolbar={renderInputToolbar}
       />
       {/*keyboard adjustments for androids */}
       {Platform.OS === "android" ? (

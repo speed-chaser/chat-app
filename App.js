@@ -1,20 +1,24 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, ImageBackground } from "react-native";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
-//import Firebase
+import { Alert, LogBox } from "react-native";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  disableNetwork,
+  enableNetwork,
+} from "firebase/firestore";
+import { useNetInfo } from "@react-native-community/netinfo";
+//import { useNetInfo } from "@react-native-community/netinfo";
 
-// import navigation screens
 import Start from "./components/Start";
 import Chat from "./components/Chat";
 
 const Stack = createNativeStackNavigator();
 
-// The app's main Chat component that renders the chat UI
 const App = () => {
+  const connectionStatus = useNetInfo();
+
   const firebaseConfig = {
     apiKey: "AIzaSyAV-lKqnKMBaylrV9oAW4Gvpoe3eTgddiQ",
     authDomain: "chat-app-42f6c.firebaseapp.com",
@@ -25,18 +29,30 @@ const App = () => {
     measurementId: "G-KJSRPP5QTW",
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-
-  //Initialize Cloud Firestore and get a reference to the service
   const db = getFirestore(app);
+
+  useEffect(() => {
+    if (connectionStatus.isConnected === false) {
+      Alert.alert("Connection lost!");
+      disableNetwork(db);
+    } else if (connectionStatus.isConnected === true) {
+      enableNetwork(db);
+    }
+  }, [connectionStatus.isConnected]);
 
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Start">
         <Stack.Screen name="Start" component={Start} />
         <Stack.Screen name="Chat">
-          {(props) => <Chat db={db} {...props} />}
+          {(props) => (
+            <Chat
+              isConnected={connectionStatus.isConnected}
+              db={db}
+              {...props}
+            />
+          )}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
