@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import {
   collection,
-  getDocs,
   addDoc,
   onSnapshot,
   query,

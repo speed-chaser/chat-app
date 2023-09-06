@@ -9,7 +9,6 @@ import {
   enableNetwork,
 } from "firebase/firestore";
 import { useNetInfo } from "@react-native-community/netinfo";
-//import { useNetInfo } from "@react-native-community/netinfo";
 
 import Start from "./components/Start";
 import Chat from "./components/Chat";
