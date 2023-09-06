@@ -22,7 +22,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Chat = ({ db, route, navigation, isConnected }) => {
-  const { name, _id, theme } = route.params;
+  const { name, userID, theme } = route.params;
   const [messages, setMessages] = useState([]);
 
   const loadCachedMessages = async () => {
@@ -50,42 +50,30 @@ const Chat = ({ db, route, navigation, isConnected }) => {
   let unsubMessages;
 
   useEffect(() => {
-    navigation.setOptions({
-      title: name,
-    });
-
     if (isConnected === true) {
       if (unsubMessages) unsubMessages();
       unsubMessages = null;
 
-      const q = query(collection(db, "messages"), where("uid", "==", _id));
-      unsubMessages = onSnapshot(q, (documentsSnapshot) => {
+      navigation.setOptions({ title: name });
+      const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+      unsubMessages = onSnapshot(q, (docs) => {
         let newMessages = [];
-        documentsSnapshot.forEach((doc) => {
-          const messageData = doc.data();
-          const message = {
-            _id: messageData.messageId,
-            text: messageData.text,
-            createdAt: new Date(),
-            user: {
-              _id: messageData.senderId,
-              name: name,
-            },
-          };
-          newMessages.push(message);
+        docs.forEach((doc) => {
+          newMessages.push({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: new Date(doc.data().createdAt.toMillis()),
+          });
         });
         cacheMessages(newMessages);
         setMessages(newMessages);
       });
-    } else {
-      loadCachedMessages();
-    }
+    } else loadCachedMessages();
 
     return () => {
       if (unsubMessages) unsubMessages();
     };
   }, [isConnected]);
-
   const onSend = (newMessages) => {
     addDoc(collection(db, "messages"), newMessages[0]);
   };
@@ -126,7 +114,7 @@ const Chat = ({ db, route, navigation, isConnected }) => {
         messages={messages}
         renderBubble={renderBubble}
         onSend={(messages) => onSend(messages)}
-        user={{ _id: _id, name: name }}
+        user={{ _id: userID, name: name }}
         renderInputToolbar={renderInputToolbar}
       />
       {/*keyboard adjustments for androids */}

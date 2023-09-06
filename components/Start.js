@@ -33,7 +33,7 @@ const Start = ({ navigation }) => {
     signInAnonymously(auth)
       .then((result) => {
         navigation.navigate("Chat", {
-          _id: result.user.uid,
+          userID: result.user.uid,
           name: name,
           theme: selectedTheme,
         });
