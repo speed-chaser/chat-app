@@ -29,6 +29,7 @@ const Chat = ({ db, route, navigation, isConnected }) => {
     try {
       const cachedMessages = await AsyncStorage.getItem("messages");
       console.log("Cached Messages:", cachedMessages);
+
       if (cachedMessages) {
         setMessages(JSON.parse(cachedMessages));
       }
