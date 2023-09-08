@@ -18,24 +18,17 @@ import {
   where,
   orderBy,
 } from "firebase/firestore";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomActions from "./CustomActions";
+import MapView from "react-native-maps";
 
-const Chat = ({ db, route, navigation, isConnected }) => {
+const Chat = ({ db, route, navigation, isConnected, storage }) => {
   const { name, userID, theme } = route.params;
   const [messages, setMessages] = useState([]);
 
   const loadCachedMessages = async () => {
-    try {
-      const cachedMessages = await AsyncStorage.getItem("messages");
-      console.log("Cached Messages:", cachedMessages);
-
-      if (cachedMessages) {
-        setMessages(JSON.parse(cachedMessages));
-      }
-    } catch (error) {
-      console.error("Error loading cached messages:", error.message);
-    }
+    const cachedMessages = (await AsyncStorage.getItem("messages")) || [];
+    setMessages(JSON.parse(cachedMessages));
   };
 
   const cacheMessages = async (messagesToCache) => {
@@ -74,8 +67,31 @@ const Chat = ({ db, route, navigation, isConnected }) => {
       if (unsubMessages) unsubMessages();
     };
   }, [isConnected]);
+
   const onSend = (newMessages) => {
     addDoc(collection(db, "messages"), newMessages[0]);
+  };
+
+  const renderCustomActions = (props) => {
+    return <CustomActions storage={storage} userID={userID} {...props} />;
+  };
+
+  const renderCustomView = (props) => {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
   };
 
   //customizes the chat bubble color
@@ -116,6 +132,8 @@ const Chat = ({ db, route, navigation, isConnected }) => {
         onSend={(messages) => onSend(messages)}
         user={{ _id: userID, name: name }}
         renderInputToolbar={renderInputToolbar}
+        renderActions={renderCustomActions}
+        renderCustomView={renderCustomView}
       />
       {/*keyboard adjustments for androids */}
       {Platform.OS === "android" ? (
